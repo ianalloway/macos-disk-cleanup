@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+#
+# gh-auth — small CLI to run GitHub CLI authentication locally (macOS-friendly).
+# Requires: brew install gh  (https://cli.github.com)
+#
+set -euo pipefail
+
+readonly PROG=$(basename "$0")
+
+die() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 1; }
+
+need_gh() {
+	command -v gh >/dev/null 2>&1 || die "GitHub CLI not found. Install: brew install gh"
+}
+
+usage() {
+	cat <<EOF
+Usage: $PROG <command>
+
+  Runs gh(1) auth flows on this machine only (nothing is sent except to GitHub).
+
+Commands:
+  status     Show auth status (exit 1 if not logged in).
+  check      Silent: exit 0 if logged in to github.com, else 1.
+  login      Browser login (recommended): HTTPS + github.com + stores creds locally.
+  login-ssh  Interactive: choose SSH; uses gh auth login prompts.
+  refresh    Refresh stored credentials if supported.
+  setup-git  Run: gh auth setup-git (use gh as Git credential helper).
+  logout     Sign out of github.com on this host (may prompt).
+  -h, --help This help.
+
+Examples:
+  chmod +x gh-auth && ./gh-auth login
+  ./gh-auth status && ./gh-auth setup-git
+EOF
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+-h | --help | help | "") usage; [[ -n $cmd ]] || exit 0 ;;
+esac
+
+need_gh
+
+case "$cmd" in
+status)
+	gh auth status
+	;;
+check)
+	gh auth status --hostname github.com >/dev/null 2>&1
+	;;
+login)
+	# Single host: GitHub.com; opens browser (or device flow) — credentials stay in OS keychain / gh config.
+	exec gh auth login --web --git-protocol https --hostname github.com
+	;;
+login-ssh)
+	exec gh auth login --hostname github.com
+	;;
+refresh)
+	gh auth refresh --hostname github.com 2>/dev/null || gh auth refresh || true
+	gh auth status
+	;;
+setup-git)
+	gh auth setup-git --hostname github.com
+	;;
+logout)
+	gh auth logout --hostname github.com
+	;;
+*)
+	die "unknown command: $cmd (try $PROG --help)"
+	;;
+esac
