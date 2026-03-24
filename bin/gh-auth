@@ -5,7 +5,8 @@
 #
 set -euo pipefail
 
-readonly PROG=$(basename "$0")
+PROG=$(basename "$0")
+readonly PROG
 
 die() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 1; }
 
@@ -30,8 +31,8 @@ Commands:
   -h, --help This help.
 
 Examples:
-  chmod +x gh-auth && ./gh-auth login
-  ./gh-auth status && ./gh-auth setup-git
+  ./bin/gh-auth login
+  ./bin/gh-auth status && ./bin/gh-auth setup-git
 EOF
 }
 
